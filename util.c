@@ -20,7 +20,8 @@ int lamport_clock = 0;
 pthread_mutex_t clockMut = PTHREAD_MUTEX_INITIALIZER;
 int ackCount = 0;
 pthread_mutex_t ackMut = PTHREAD_MUTEX_INITIALIZER;
-
+/* DODANE: Definicja muteksu tablicy */
+pthread_mutex_t tablicaMut = PTHREAD_MUTEX_INITIALIZER;
 int *tablica_zasobow;
 
 struct tagNames_t{

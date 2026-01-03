@@ -58,7 +58,8 @@ extern int lamport_clock;
 extern pthread_mutex_t clockMut;
 extern int ackCount;
 extern pthread_mutex_t ackMut;
-
+/* DODANE: Muteks dla tablic wiedzy */
+extern pthread_mutex_t tablicaMut;
 /* zmiana stanu, obwarowana muteksem */
 void changeState( state_t );
 #endif
