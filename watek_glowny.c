@@ -55,21 +55,41 @@ void mainLoop()
     int liczba_odwiedzonych = 0;
     int historia_warsztatow[10];
 
+    int tury = 0; // Licznik przeprowadzonych tur Pyrkonu
+
     while (stan != InFinish) {
         switch (stan) {
             case InRun:
-                /* ... (bariery i logi bez zmian) ... */
-                MPI_Barrier(MPI_COMM_WORLD);
-                if (rank == 0) {
-                    println("=== SYSTEM GOTOWY... ===");
-                    getchar();
-                }
                 MPI_Barrier(MPI_COMM_WORLD);
 
-                // Reset lokalny
+                // 2. Tylko ROOT czeka na znak od użytkownika
+                // if (rank == 0) {
+                //     println("=== Wciśnij ENTER, aby rozpocząć PYRKON (Start Tury) ===");
+                //     getchar();
+                // }
+                // println("Czekam na sygnał do rozpoczęcia tury...");
+                for (int i = 0; i < size; i++) {
+                    tablica_zadan[i] = -1;      // Zakładamy, że nikt nic nie chce
+                    tablica_zasobow[i] = -999;  // Zakładamy, że nikt nigdzie nie jest
+                }
                 liczba_odwiedzonych = 0;
                 for(int i=0; i<10; i++) historia_warsztatow[i] = -1;
+                MPI_Barrier(MPI_COMM_WORLD);
 
+                // Zwiększamy licznik tur i sprawdzamy limit
+                tury++;
+                if (tury > PYRKON_TURY) {
+                    println("Osiągnięto maksymalną liczbę tur (%d). Kończę symulację.", PYRKON_TURY);
+                    changeState(InFinish);
+                    break;
+                }else{
+                    println("=== Rozpoczynam TURĘ PYRKON %d ===", tury);
+                }
+
+    
+
+
+                println("Chcę wejść na PYRKON (tura %d)", tury);
                 println("Stan: InRun. Zgłaszam chęć wejścia na PYRKON.");
 
                 current_resource = REQ_PYRKON;
@@ -156,8 +176,10 @@ void mainLoop()
                 historia_warsztatow[liczba_odwiedzonych] = current_resource;
                 liczba_odwiedzonych++;
 
-                println("Stan: InWorkshop. Trwa warsztat nr %d...", current_resource);
-                sleep(1);
+                /* --- LOGIKA PĘTLI WARSZTATOWEJ --- */
+                // Jeśli odwiedziliśmy mniej niż 2 warsztaty, idziemy na kolejny
+                if (liczba_odwiedzonych < 2  || ((random() % 100) < 50) && (liczba_odwiedzonych < WARSZTATY_COUNT)) {
+                    println("Chcę iść na kolejny warsztat!");
 
                 if (liczba_odwiedzonych < 2) {
                     println("Decyzja: Wracam na korytarz.");
