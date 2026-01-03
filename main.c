@@ -29,9 +29,14 @@ void finalizuj()
     println("czekam na wątek \"komunikacyjny\"\n" );
     pthread_join(threadKom,NULL);
     MPI_Type_free(&MPI_PAKIET_T);
+    
+    // --- ROZWIĄZANIE WYCIEKU PAMIĘCI ---
+    if (tablica_zadan) free(tablica_zadan);
+    if (tablica_zasobow) free(tablica_zasobow);
+    // -----------------------------------
+    
     MPI_Finalize();
 }
-
 void check_thread_support(int provided)
 {
     printf("THREAD SUPPORT: chcemy %d. Co otrzymamy?\n", provided);
