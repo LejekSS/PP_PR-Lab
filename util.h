@@ -25,9 +25,12 @@ typedef enum {
 
 /* Dodaj definicje limitów */
 #define REQ_PYRKON -1
-#define WARSZTATY_COUNT 3   // Mamy warsztaty 0, 1, 2
-#define PYRKON_SLOTS 2      // Max 2 osoby na terenie Pyrkonu
+#define WARSZTATY_COUNT 5   // Mamy warsztaty 0, 1, 2
+#define PYRKON_SLOTS 5      // Max 2 osoby na terenie Pyrkonu
 #define WARSZTAT_SLOTS 2    // Max 1 osoba na konkretnym warsztacie
+
+/* Nowa stała: liczba tur Pyrkonu */
+#define PYRKON_TURY 10
 
 /* Typy wiadomości */
 /* TYPY PAKIETÓW */

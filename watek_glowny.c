@@ -53,6 +53,8 @@ void mainLoop()
     int wybrany_warsztat = 0;
     int liczba_odwiedzonych = 0; // Licznik odwiedzonych warsztatów
 
+    int tury = 0; // Licznik przeprowadzonych tur Pyrkonu
+
     while (stan != InFinish) {
         switch (stan) {
             case InRun:
@@ -62,20 +64,34 @@ void mainLoop()
                 MPI_Barrier(MPI_COMM_WORLD);
 
                 // 2. Tylko ROOT czeka na znak od użytkownika
-                if (rank == 0) {
-                    println("=== Wciśnij ENTER, aby rozpocząć PYRKON (Start Tury) ===");
-                    getchar();
+                // if (rank == 0) {
+                //     println("=== Wciśnij ENTER, aby rozpocząć PYRKON (Start Tury) ===");
+                //     getchar();
+                // }
+                // println("Czekam na sygnał do rozpoczęcia tury...");
+                for (int i = 0; i < size; i++) {
+                    tablica_zadan[i] = -1;      // Zakładamy, że nikt nic nie chce
+                    tablica_zasobow[i] = -999;  // Zakładamy, że nikt nigdzie nie jest
                 }
-
                 // 3. Czekamy, aż ROOT da sygnał (wciśnie Enter)
                 MPI_Barrier(MPI_COMM_WORLD);
+
+                // Zwiększamy licznik tur i sprawdzamy limit
+                tury++;
+                if (tury > PYRKON_TURY) {
+                    println("Osiągnięto maksymalną liczbę tur (%d). Kończę symulację.", PYRKON_TURY);
+                    changeState(InFinish);
+                    break;
+                }else{
+                    println("=== Rozpoczynam TURĘ PYRKON %d ===", tury);
+                }
 
                 // --- START LOGIKI ---
 
                 // Resetujemy licznik na nową turę
                 liczba_odwiedzonych = 0;
 
-                println("Chcę wejść na PYRKON");
+                println("Chcę wejść na PYRKON (tura %d)", tury);
 
                 current_resource = REQ_PYRKON;
                 ackCount = 0;
@@ -150,7 +166,7 @@ void mainLoop()
 
                 /* --- LOGIKA PĘTLI WARSZTATOWEJ --- */
                 // Jeśli odwiedziliśmy mniej niż 2 warsztaty, idziemy na kolejny
-                if (liczba_odwiedzonych < 2) {
+                if (liczba_odwiedzonych < 2  || ((random() % 100) < 50) && (liczba_odwiedzonych < WARSZTATY_COUNT)) {
                     println("Chcę iść na kolejny warsztat!");
 
                     // Wracamy do InSection, aby wylosować nowy warsztat i wysłać nowe żądanie.
