@@ -58,9 +58,9 @@ extern int lamport_clock;
 extern pthread_mutex_t clockMut;
 extern int ackCount;
 extern pthread_mutex_t ackMut;
+/* DODANE: mutex chroniący dostęp do tablic tablica_zadan i tablica_zasobow */
+extern pthread_mutex_t tablicaMut;
 
 /* zmiana stanu, obwarowana muteksem */
 void changeState( state_t );
 #endif
-
-extern int *tablica_zadan;

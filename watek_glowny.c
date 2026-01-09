@@ -6,6 +6,8 @@
 /* resource_id = o co my walczymy (-1 to Pyrkon, 0..N to warsztaty) */
 int check_priority(int my_ts, int my_resource) {
     int position = 0;
+    // ZABEZPIECZAMY ODCZYT TABLIC
+    pthread_mutex_lock(&tablicaMut);
 
     for (int i = 0; i < size; i++) {
         if (i == rank) continue;
@@ -16,21 +18,18 @@ int check_priority(int my_ts, int my_resource) {
 
         // WARUNEK 1: Walczymy o WEJŚCIE NA PYRKON
         if (my_resource == REQ_PYRKON) {
-            // Konkurujemy z tymi, co chcą wejść na Pyrkon (REQ_PYRKON)
-            // ORAZ z tymi, co są na warsztatach (id >= 0), bo oni zajmują miejsce na Pyrkonie!
-
             if (other_resource == REQ_PYRKON) {
                 // Standardowy Lamport
                 if (other_ts < my_ts || (other_ts == my_ts && i < rank)) {
                     position++;
                 }
-            } else if (other_resource >= 0) {
-                // Ktoś chce/jest na warsztacie -> czyli jest już na Pyrkonie.
-                // On ZAWSZE blokuje miejsce komuś, kto dopiero chce wejść.
+            } 
+            // ORAZ z tymi, co są na warsztatach (id >= 0), bo oni zajmują miejsce na Pyrkonie!
+            else if (other_resource >= 0) {
                 position++;
             }
         }
-            // WARUNEK 2: Walczymy o konkretny WARSZTAT
+        // WARUNEK 2: Walczymy o konkretny WARSZTAT
         else {
             // Konkurujemy TYLKO z tymi, co chcą TEN SAM warsztat
             if (other_resource == my_resource) {
@@ -41,6 +40,10 @@ int check_priority(int my_ts, int my_resource) {
             }
         }
     }
+
+    // ODBLOKOWUJEMY PO ZAKOŃCZENIU ODCZYTU
+    pthread_mutex_unlock(&tablicaMut);
+
     return position;
 }
 
@@ -69,10 +72,12 @@ void mainLoop()
                 //     getchar();
                 // }
                 // println("Czekam na sygnał do rozpoczęcia tury...");
+                pthread_mutex_lock(&tablicaMut);
                 for (int i = 0; i < size; i++) {
                     tablica_zadan[i] = -1;      // Zakładamy, że nikt nic nie chce
                     tablica_zasobow[i] = -999;  // Zakładamy, że nikt nigdzie nie jest
                 }
+                pthread_mutex_unlock(&tablicaMut);
                 // 3. Czekamy, aż ROOT da sygnał (wciśnie Enter)
                 MPI_Barrier(MPI_COMM_WORLD);
 
@@ -94,13 +99,17 @@ void mainLoop()
                 println("Chcę wejść na PYRKON (tura %d)", tury);
 
                 current_resource = REQ_PYRKON;
+                pthread_mutex_lock(&ackMut);
                 ackCount = 0;
+                pthread_mutex_unlock(&ackMut);
 
                 pthread_mutex_lock(&clockMut);
                 lamport_clock++;
                 my_request_time = lamport_clock;
+                pthread_mutex_lock(&tablicaMut);
                 tablica_zadan[rank] = my_request_time;
                 tablica_zasobow[rank] = current_resource;
+                pthread_mutex_unlock(&tablicaMut);
                 pthread_mutex_unlock(&clockMut);
 
                 packet_t *pkt = calloc(1, sizeof(packet_t));
@@ -128,15 +137,19 @@ void mainLoop()
                 wybrany_warsztat = random() % WARSZTATY_COUNT;
                 println("Jestem na Pyrkonie. Chcę iść na warsztat nr %d", wybrany_warsztat);
 
+                pthread_mutex_lock(&ackMut);
                 ackCount = 0;
+                pthread_mutex_unlock(&ackMut);
                 current_resource = wybrany_warsztat;
 
                 pthread_mutex_lock(&clockMut);
                 lamport_clock++;
                 my_request_time = lamport_clock;
                 // WAŻNE: Aktualizujemy tablicę, ale NIE zwalniamy miejsca na Pyrkonie (nadpisujemy wpis)
+                pthread_mutex_lock(&tablicaMut);
                 tablica_zadan[rank] = my_request_time;
                 tablica_zasobow[rank] = current_resource;
+                pthread_mutex_unlock(&tablicaMut);
                 pthread_mutex_unlock(&clockMut);
 
                 packet_t *pkt_w = calloc(1, sizeof(packet_t));
@@ -178,8 +191,10 @@ void mainLoop()
                     // Odwiedziliśmy wystarczająco dużo, wychodzimy z Pyrkonu
                     println("Opuszczam Pyrkon (zaliczyłem %d warsztatów).", liczba_odwiedzonych);
 
+                    pthread_mutex_lock(&tablicaMut);
                     tablica_zadan[rank] = -1;
                     tablica_zasobow[rank] = -999;
+                    pthread_mutex_unlock(&tablicaMut);
 
                     packet_t *pkt_rel = calloc(1, sizeof(packet_t));
                     pkt_rel->ts = lamport_clock;

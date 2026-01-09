@@ -21,6 +21,9 @@ pthread_mutex_t clockMut = PTHREAD_MUTEX_INITIALIZER;
 int ackCount = 0;
 pthread_mutex_t ackMut = PTHREAD_MUTEX_INITIALIZER;
 
+/* NOWY MUTEX: chroni dostęp do tablica_zadan i tablica_zasobow */
+pthread_mutex_t tablicaMut = PTHREAD_MUTEX_INITIALIZER;
+
 int *tablica_zasobow;
 
 struct tagNames_t{

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Domyślna komenda uruchomienia
-CMD="make run"
+CMD="mpirun -oversubscribe -np 8 ./main"
 UTIL_FILE="util.h"
 
 # --- ZCZYTYWANIE LIMITÓW ---
