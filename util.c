@@ -2,19 +2,20 @@
 #include "util.h"
 MPI_Datatype MPI_PAKIET_T;
 
-/* State definition */
+//stan
 state_t stan=InRun;
 
-/* Mutex for state */
+//mutex stanu
 pthread_mutex_t stateMut = PTHREAD_MUTEX_INITIALIZER;
 
-/* Global variable definitions */
+//zegar Lamporta
 int lamport_clock = 0;
 pthread_mutex_t clockMut = PTHREAD_MUTEX_INITIALIZER;
+//liczba odebranych ACK-ów
 int ackCount = 0;
 pthread_mutex_t ackMut = PTHREAD_MUTEX_INITIALIZER;
 
-/* MUTEX: chroni dostęp do tablica_zadan i tablica_zasobow */
+// mutex tablicy zadan
 pthread_mutex_t tablicaMut = PTHREAD_MUTEX_INITIALIZER;
 
 struct tagNames_t{
@@ -30,21 +31,18 @@ const char *const tag2string( int tag )
     }
     return "<unknown>";
 }
-/* tworzy typ MPI_PAKIET_T
-*/
-
+// funkcja inicjująca typ MPI dla struktury packet_t
 void inicjuj_typ_pakietu()
 {
-    /* Używamy MPI_INT dla wszystkich pól - ts, src, resource_id, data */
-    /* Definiujemy tablice o rozmiarze NITEMS (zdefiniowanym w util.h) */
+    // definiujemy tablice potrzebne do stworzenia typu MPI
     int blocklengths[NITEMS];
     MPI_Datatype typy[NITEMS];
     MPI_Aint offsets[NITEMS];
 
-    /* Wypełniamy tablice ręcznie, aby uniknąć problemów z inicjalizacją */
+    // inicjalizacja tablic
     for (int i = 0; i < NITEMS; i++) {
         blocklengths[i] = 1;
-        typy[i] = MPI_INT; // Wszędzie przesyłamy inty
+        typy[i] = MPI_INT;
     }
 
     // Obliczamy offsety pól w strukturze packet_t
@@ -57,7 +55,7 @@ void inicjuj_typ_pakietu()
     MPI_Type_commit(&MPI_PAKIET_T);
 }
 
-/* funkcja pomocnicza: wykonaj wysłanie wszystkich odłożonych ACK-ów do procesu src (wywoływane przy RELEASE) */
+// Funkcja wysyłająca odroczone potwierdzenia do procesu src
 void send_deferred_acks_for(int src)
 {
     pthread_mutex_lock(&deferredMut);
@@ -81,8 +79,7 @@ void sendPacket(packet_t *pkt, int destination, int tag)
 
     pkt->src = rank;
 
-    // POPRAWKA: Podbijamy zegar tylko jeśli to nowa wiadomość (ts == 0 lub pusty pakiet)
-    // Ale dla REQUEST musimy to zrobić ręcznie przed wysłaniem!
+    // Ustawiamy timestamp Lamporta
     pthread_mutex_lock(&clockMut);
     if(pkt->ts == 0) { // Zakładamy, że 0 to "pusty/nieustawiony"
         lamport_clock++;
@@ -91,7 +88,6 @@ void sendPacket(packet_t *pkt, int destination, int tag)
     pthread_mutex_unlock(&clockMut);
 
     // Ustawiamy domyślny resource_id jeśli pakiet był pusty (np. dla ACK)
-    // Ale w pełnej implementacji będziemy to ustawiać ręcznie przed wywołaniem
     if(freepkt) pkt->resource_id = -999;
 
     MPI_Send( pkt, 1, MPI_PAKIET_T, destination, tag, MPI_COMM_WORLD);

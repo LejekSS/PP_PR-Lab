@@ -31,9 +31,11 @@ void *startKomWatek(void *ptr)
             case RELEASE:
                 debug("Otrzymano RELEASE od %d", pakiet.src);
                 pthread_mutex_lock(&tablicaMut);
-                //TODO tutaj if zeby sprawdzic czy zwalnia pyrkon czy warsztat
-                tablica_zadan[pakiet.src] = -1;
-                tablica_zasobow[pakiet.src] = -999;
+                //zalezy czy zwalnia pyrkon czy warsztat
+                if (pakiet.resource_id == REQ_PYRKON) 
+                    tablica_zasobow[pakiet.src] = -2;
+                else tablica_zasobow[pakiet.src] = -1;
+                tablica_zadan[pakiet.src] = -999;
                 pthread_mutex_unlock(&tablicaMut);
                 break;
 

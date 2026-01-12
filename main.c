@@ -14,7 +14,7 @@ pthread_t threadKom;
 void finalizuj()
 {
     pthread_mutex_destroy( &stateMut);
-    /* Czekamy, aż wątek potomny się zakończy */
+    // czekamy na wątek komunikacyjny
     println("czekam na wątek \"komunikacyjny\"\n" );
     pthread_join(threadKom,NULL);
     MPI_Type_free(&MPI_PAKIET_T);

@@ -3,6 +3,7 @@
 # Domyślna komenda uruchomienia
 CMD="mpirun -oversubscribe -np 8 ./main"
 UTIL_FILE="util.h"
+IGNORE_ACKS=0
 
 # --- ZCZYTYWANIE LIMITÓW ---
 if [ ! -f "$UTIL_FILE" ]; then
@@ -22,13 +23,27 @@ if [ -f "$UTIL_FILE" ]; then
     if [[ "$FOUND_WARSZTAT" =~ ^[0-9]+$ ]]; then L_WARSZTAT=$FOUND_WARSZTAT; fi
 fi
 
-if [ "$#" -gt 0 ]; then CMD="$@"; fi
+POSITIONAL_ARGS=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -i|--ignore-acks)
+            IGNORE_ACKS=1
+            shift
+            ;;
+        *)
+            POSITIONAL_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ ${#POSITIONAL_ARGS[@]} -gt 0 ]; then CMD="${POSITIONAL_ARGS[*]}"; fi
 
 echo "Uruchamiam: $CMD"
 sleep 1
 
 # --- GŁÓWNA PĘTLA AWK ---
-$CMD 2>&1 | awk -v LIMIT_PYRKON="$L_PYRKON" -v LIMIT_WARSZTAT="$L_WARSZTAT" '
+$CMD 2>&1 | awk -v LIMIT_PYRKON="$L_PYRKON" -v LIMIT_WARSZTAT="$L_WARSZTAT" -v IGNORE_ACKS="$IGNORE_ACKS" '
 BEGIN {
     # Konfiguracja
     TIMEOUT_SEC = 5
@@ -64,11 +79,14 @@ function add_error(msg) {
     time_str = sprintf("[+%ds]", curr_time)
     ERR_COUNT++
     error_history[ERR_COUNT] = sprintf("%s %s", time_str, msg)
+    new_error_detected = 1
 }
 
 {
     # 1. Parsowanie
     gsub(/\x1b\[[0-9;]*m/, "", $0) # usuwanie kolorów z outputu C
+
+    new_error_detected = 0
 
     if (match($0, /\[([0-9]+)\] \[([0-9]+)\]:/, arr)) {
         rank = arr[1]
@@ -78,7 +96,10 @@ function add_error(msg) {
         
         msg_content = substr($0, RSTART + RLENGTH)
         sub(/^ */, "", msg_content)
-        last_msg[rank] = msg_content
+
+        if (IGNORE_ACKS == 0 || msg_content !~ /Wysyłam potwierdzenie/) {
+            last_msg[rank] = msg_content
+        }
     }
 
     # Maszyna stanów (ignoruje wielkość liter)
@@ -218,4 +239,10 @@ function add_error(msg) {
     printf "\nBieżące obłożenie Pyrkonu: "
     if (count_pyrkon > LIMIT_PYRKON) printf "%s%d/%d (PRZEPEŁNIENIE!)%s\n", C_RED, count_pyrkon, LIMIT_PYRKON, C_RESET
     else printf "%s%d/%d%s\n", C_GREEN, count_pyrkon, LIMIT_PYRKON, C_RESET
+
+    if (new_error_detected == 1) {
+        printf "\n%s[PAUZA] Wykryto błąd. Naciśnij [Enter], aby wznowić...%s", C_RED C_BOLD, C_RESET
+        fflush()
+        getline dummy < "/dev/tty"
+    }
 }'

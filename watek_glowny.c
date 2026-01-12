@@ -4,7 +4,7 @@
 
 // zwraca pozycję w kolejce do zasobu
 int check_priority(int my_ts, int my_resource) {
-    int position = 0;
+    int position = 1;
 
     pthread_mutex_lock(&tablicaMut);
 
@@ -17,15 +17,11 @@ int check_priority(int my_ts, int my_resource) {
 
         //pyrkon
         if (my_resource == REQ_PYRKON) {
-            //ci co chca pyrkon
-            if (other_resource == REQ_PYRKON) {
+            if (other_resource > -1) position++;
+            else if (other_resource == REQ_PYRKON) {
                 if (other_ts < my_ts || (other_ts == my_ts && i < rank)) {
                     position++;
                 }
-            } 
-            //ci co chca warsztat
-            else if (other_resource >= 0) {
-                position++;
             }
         }
         //warsztat
@@ -62,7 +58,7 @@ void mainLoop()
                 // Resetujemy tablice zadan i zasobow
                 pthread_mutex_lock(&tablicaMut);
                 for (int i = 0; i < size; i++) {
-                    tablica_zadan[i] = -1;      // Zakładamy, że nikt nic nie chce
+                    tablica_zadan[i] = -2;      // Zakładamy, że nikt nic nie chce
                     tablica_zasobow[i] = -999;  // Zakładamy, że nikt nigdzie nie jest
                 }
                 pthread_mutex_unlock(&tablicaMut);
@@ -115,8 +111,7 @@ void mainLoop()
                 int localAck = ackCount;
                 pthread_mutex_unlock(&ackMut);
                 if (localAck == size - 1) {
-                    if (check_priority(my_request_time, REQ_PYRKON) < PYRKON_SLOTS) {
-                        // println("Wszedłem na teren PYRKONU!");
+                    if (check_priority(my_request_time, REQ_PYRKON) <= PYRKON_SLOTS) {
                         changeState(InSection);
                     }
                 }
@@ -168,7 +163,20 @@ void mainLoop()
                 sleep(1); //warsztatujemy
                 liczba_odwiedzonych++;
                 println("Koniec warsztatu %d. Odwiedziłem już %d.", current_resource, liczba_odwiedzonych);
+                
+                packet_t *pkt_rel = calloc(1, sizeof(packet_t));
+                pkt_rel->ts = lamport_clock;
+                pkt_rel->resource_id = current_resource;
+                println("Wysyłam RELEASE (zwalniam warsztat %d)", current_resource);
+                for (int i=0;i<size;i++)
+                    if (i!=rank) sendPacket( pkt_rel, i, RELEASE);
+                free(pkt_rel);
+                current_resource = -1;
+                changeState(DecideNext);
+                break;
+                
 
+            case DecideNext:
                 // decyzja czy iść na kolejny warsztat czy opuścić Pyrkon
                 if (liczba_odwiedzonych < 2  || ((random() % 100) < 50) && (liczba_odwiedzonych < WARSZTATY_COUNT)) {
                     println("Chcę iść na kolejny warsztat!");

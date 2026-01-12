@@ -20,7 +20,8 @@ typedef enum {
     InSection,      // na pyrkonie, wybiera warsztat
     InFinish,
     InWantWorkshop,
-    InWorkshop
+    InWorkshop,
+    DecideNext
 } state_t;
 
 //konfiguracja
@@ -34,8 +35,8 @@ typedef enum {
 #define ACK     1
 #define REQUEST 2
 #define RELEASE 3
-#define APP_PKT 4
-#define FINISH  5
+#define APP_PKT 4 //TODO tego nie ma
+#define FINISH  5 //TODO tego nie ma
 
 extern int *tablica_zasobow; // resource_id dla każdego procesu
 extern int *tablica_zadan;   // timestamp żądania lub -1 

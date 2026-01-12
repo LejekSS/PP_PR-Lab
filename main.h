@@ -28,15 +28,8 @@ extern int* tablica_zasobow;
 extern pthread_mutex_t deferredMut;
 
 
-/* 
-    debug macro - works like printf when DEBUG is defined.
-    If DEBUG is not defined, it compiles to an empty statement.
-   
-    Usage is exactly like printf, but it adds colors and automatically 
-    displays the rank and Lamport clock.
-    
-    Requires the "rank" variable to exist.
-*/
+// debug macro
+// [rank] [Lamport clock]: wiadomosc
 #ifdef DEBUG
 #define debug(FORMAT,...) do { \
     pthread_mutex_lock(&clockMut); \
@@ -48,8 +41,7 @@ extern pthread_mutex_t deferredMut;
 #define debug(...) ;
 #endif
 
-// println macro - same as debug, but always displays
-// Displays: [rank] [Lamport clock]: FORMAT
+//to samo co wyżej tylko wyswietla zawsze
 #define println(FORMAT,...) do { \
     pthread_mutex_lock(&clockMut); \
     int _clock = lamport_clock; \
