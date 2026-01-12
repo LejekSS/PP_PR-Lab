@@ -209,7 +209,7 @@ void mainLoop()
                     pkt_rel->ts = lamport_clock;
                     pkt_rel->resource_id = -1;
 
-                    println("Wysyłam RELEASE (zwalniam miejsce) z zegarem %d", lamport_clock);
+                    println("Wysyłam RELEASE (zwalniam miejsce)");
 
                     for (int i=0;i<size;i++)
                         if (i!=rank) sendPacket( pkt_rel, i, RELEASE);

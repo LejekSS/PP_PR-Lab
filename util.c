@@ -54,11 +54,6 @@ void inicjuj_typ_pakietu()
         typy[i] = MPI_INT; // Wszędzie przesyłamy inty
     }
 
-    offsets[0] = offsetof(packet_t, ts);
-    offsets[1] = offsetof(packet_t, src);
-    /* Jeśli NITEMS == 4, to znaczy że dodałeś resource_id w util.h */
-    if (NITEMS >= 3) offsets[2] = offsetof(packet_t, resource_id); // Zakładam, że zmieniłeś nazwę data na resource_id lub dodałeś nowe pole
-    /* Uwaga: Dostosuj offsety do swojej struktury packet_t w util.h! */
     /* Poniżej bezpieczniejsza wersja, która zakłada, że masz 4 pola w struct packet_t */
 
     // Upewnij się, że ta sekcja pasuje do struct packet_t w util.h:
@@ -112,7 +107,7 @@ void sendPacket(packet_t *pkt, int destination, int tag)
 
     // Zmieniam debug na println zeby widziec zegar (jesli makro to obsluguje)
     // Ale na razie zostawmy debug
-    debug("Wysyłam %s do %d z zegarem %d", tag2string(tag), destination, pkt->ts);
+    debug("Wysyłam %s do %d", tag2string(tag), destination);
 
     if (freepkt) free(pkt);
 }

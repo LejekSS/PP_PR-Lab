@@ -37,6 +37,7 @@ void finalizuj()
     // --- ROZWIĄZANIE WYCIEKU PAMIĘCI ---
     if (tablica_zadan) free(tablica_zadan);
     if (tablica_zasobow) free(tablica_zasobow);
+    if (deferred_ack) free(deferred_ack);
     // -----------------------------------
     
     MPI_Finalize();
@@ -100,4 +101,3 @@ int main(int argc, char **argv)
     finalizuj();
     return 0;
 }
-
