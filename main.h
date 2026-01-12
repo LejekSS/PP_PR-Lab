@@ -22,6 +22,10 @@ extern int rank;
 extern int size;
 extern int ackCount;
 extern pthread_t threadKom;
+extern int* deferred_ack;
+extern int* tablica_zadan;
+extern int* tablica_zasobow;
+extern pthread_mutex_t deferredMut;
 
 
 
@@ -46,13 +50,24 @@ extern pthread_t threadKom;
                                             
 */
 #ifdef DEBUG
-#define debug(FORMAT,...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, ##__VA_ARGS__, 27,0,37);
+#define debug(FORMAT,...) do { \
+    pthread_mutex_lock(&clockMut); \
+    int _clock = lamport_clock; \
+    pthread_mutex_unlock(&clockMut); \
+    printf("%c[%d;%dm [%d] [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, _clock, ##__VA_ARGS__, 27,0,37); \
+} while(0);
 #else
 #define debug(...) ;
 #endif
 
 // makro println - to samo co debug, ale wyświetla się zawsze
-#define println(FORMAT,...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, ##__VA_ARGS__, 27,0,37);
+// Wyświetla: [rank] [zegar Lamporta]: FORMAT
+#define println(FORMAT,...) do { \
+    pthread_mutex_lock(&clockMut); \
+    int _clock = lamport_clock; \
+    pthread_mutex_unlock(&clockMut); \
+    printf("%c[%d;%dm [%d] [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, _clock, ##__VA_ARGS__, 27,0,37); \
+} while(0);
 
 
 #endif

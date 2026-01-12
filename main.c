@@ -13,6 +13,10 @@
  */
 int rank, size;
 //int ackCount = 0; //Usuniete przez chat
+int* deferred_ack = NULL;
+int* tablica_zadan = NULL;
+int* tablica_zasobow = NULL;
+pthread_mutex_t deferredMut = PTHREAD_MUTEX_INITIALIZER;
 /* 
  * Każdy proces ma dwa wątki - główny i komunikacyjny
  * w plikach, odpowiednio, watek_glowny.c oraz (siurpryza) watek_komunikacyjny.c

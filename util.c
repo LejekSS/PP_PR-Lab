@@ -24,8 +24,6 @@ pthread_mutex_t ackMut = PTHREAD_MUTEX_INITIALIZER;
 /* NOWY MUTEX: chroni dostęp do tablica_zadan i tablica_zasobow */
 pthread_mutex_t tablicaMut = PTHREAD_MUTEX_INITIALIZER;
 
-int *tablica_zasobow;
-
 struct tagNames_t{
     const char *name;
     int tag;
@@ -41,11 +39,6 @@ const char *const tag2string( int tag )
 }
 /* tworzy typ MPI_PAKIET_T
 */
-
-int *tablica_zadan;
-/* Deferred ACKs: jeśli odmówimy natychmiastowego ACK, zapisujemy tutaj kto ma dostać ACK po RELEASE */
-int *deferred_ack;
-pthread_mutex_t deferredMut = PTHREAD_MUTEX_INITIALIZER;
 
 void inicjuj_typ_pakietu()
 {
