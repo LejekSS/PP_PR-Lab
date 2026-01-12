@@ -2,65 +2,63 @@
 #define UTILH
 #include "main.h"
 
-/* typ pakietu */
+/* Typ pakietu przesyłany przez MPI */
 typedef struct {
-    int ts;       /* timestamp (zegar lamporta */
-    int src;
-    int resource_id; /* -1 = Pyrkon, 0...M = Warsztaty */
-    int data;     /* przykładowe pole z danymi; można zmienić nazwę na bardziej pasującą */
+    int ts;           /* timestamp (zegar Lamporta) */
+    int src;          /* źródło wiadomości (rank) */
+    int resource_id;  /* -1 = Pyrkon, 0..M = Warsztaty */
+    int data;         /* pole pomocnicze */
 } packet_t;
-/* packet_t ma trzy pola, więc NITEMS=3. Wykorzystane w inicjuj_typ_pakietu */
+
+/* Liczba pól w packet_t (używana przy tworzeniu typu MPI) */
 #define NITEMS 4
 
-/* Zmieniamy enum state_t */
+/* Stany procesu */
 typedef enum {
     InRun,
     InMonitor,
     InWant,
-    InSection,      /* "Jestem na Pyrkonie / Odpoczywam" */
+    InSection,      /* Na Pyrkonie (korytarz) */
     InFinish,
-    InWantWorkshop, /* Nowy stan: Chcę wejść na warsztat */
-    InWorkshop      /* Nowy stan: Jestem na warsztacie */
+    InWantWorkshop, /* Chcę wejść na warsztat */
+    InWorkshop      /* Jestem na warsztacie */
 } state_t;
 
-/* Dodaj definicje limitów */
+/* Stałe konfiguracyjne */
 #define REQ_PYRKON -1
-#define WARSZTATY_COUNT 5   // Mamy warsztaty 0, 1, 2
-#define PYRKON_SLOTS 5      // Max 2 osoby na terenie Pyrkonu
-#define WARSZTAT_SLOTS 2    // Max 1 osoba na konkretnym warsztacie
+#define WARSZTATY_COUNT 3   /* Liczba warsztatów (np. 0..2) */
+#define PYRKON_SLOTS 5      /* Maksymalna liczba miejsc na Pyrkonie */
+#define WARSZTAT_SLOTS 2    /* Maksymalna liczba uczestników jednego warsztatu */
+#define PYRKON_TURY 10      /* Maksymalna liczba tur symulacji */
 
-/* Nowa stała: liczba tur Pyrkonu */
-#define PYRKON_TURY 10
-
-/* Typy wiadomości */
-/* TYPY PAKIETÓW */
+/* Typy pakietów (MPI_TAG) */
 #define ACK     1
 #define REQUEST 2
 #define RELEASE 3
 #define APP_PKT 4
 #define FINISH  5
 
-extern int *tablica_zasobow; // Przechowuje resource_id dla danego procesu
-#define REQ_PYRKON -1
-#define WARSZTATY_COUNT 3 // Np. 3 różne warsztaty
-
+/* Tablice i typ MPI */
+extern int *tablica_zasobow; /* resource_id dla każdego procesu */
+extern int *tablica_zadan;   /* timestamp żądania lub -1 */
 extern MPI_Datatype MPI_PAKIET_T;
-void inicjuj_typ_pakietu();
 
-/* wysyłanie pakietu, skrót: wskaźnik do pakietu (0 oznacza stwórz pusty pakiet), do kogo, z jakim typem */
+/* Funkcje/zmienne udostępniane */
+void inicjuj_typ_pakietu();
 void sendPacket(packet_t *pkt, int destination, int tag);
 
 extern state_t stan;
 extern pthread_mutex_t stateMut;
 
-/* DODANE: Zegar Lamporta i Mutexy */
+/* Zegar Lamporta i muteksy */
 extern int lamport_clock;
 extern pthread_mutex_t clockMut;
 extern int ackCount;
 extern pthread_mutex_t ackMut;
-/* DODANE: mutex chroniący dostęp do tablic tablica_zadan i tablica_zasobow */
-extern pthread_mutex_t tablicaMut;
+extern pthread_mutex_t tablicaMut; /* chroni tablica_zadan i tablica_zasobow */
 
 /* zmiana stanu, obwarowana muteksem */
 void changeState( state_t );
+
 #endif
+

@@ -28,15 +28,17 @@ void *startKomWatek(void *ptr)
                 pthread_mutex_unlock(&tablicaMut);
 
                 // Odsyłamy TYLKO JEDEN pakiet ACK
+                debug("Otrzymano REQUEST od %d (res=%d, ts=%d)", pakiet.src, pakiet.resource_id, pakiet.ts);
                 sendPacket( 0, status.MPI_SOURCE, ACK );
                 break;
 
             case RELEASE:
-                // debug("Dostałem RELEASE od %d", pakiet.src);
-                // Ktoś wyszedł, więc czyścimy jego wpis w tablicy
-                // ZABEZPIECZAMY CZYSZCZENIE WPISU
+                // Ktoś wyszedł, więc czyścimy jego wpisy w tablicy
+                // ZABEZPIECZAMY CZYSZCZENIE WPISU (zarówno żądanie jak i zasób)
+                debug("Otrzymano RELEASE od %d (res=%d, ts=%d)", pakiet.src, pakiet.resource_id, pakiet.ts);
                 pthread_mutex_lock(&tablicaMut);
                 tablica_zadan[pakiet.src] = -1;
+                tablica_zasobow[pakiet.src] = -999;
                 pthread_mutex_unlock(&tablicaMut);
                 break;
 

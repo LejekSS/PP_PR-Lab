@@ -43,6 +43,9 @@ const char *const tag2string( int tag )
 */
 
 int *tablica_zadan;
+/* Deferred ACKs: jeśli odmówimy natychmiastowego ACK, zapisujemy tutaj kto ma dostać ACK po RELEASE */
+int *deferred_ack;
+pthread_mutex_t deferredMut = PTHREAD_MUTEX_INITIALIZER;
 
 void inicjuj_typ_pakietu()
 {
@@ -73,6 +76,19 @@ void inicjuj_typ_pakietu()
 
     MPI_Type_create_struct(NITEMS, blocklengths, offsets, typy, &MPI_PAKIET_T);
     MPI_Type_commit(&MPI_PAKIET_T);
+}
+
+/* funkcja pomocnicza: wykonaj wysłanie wszystkich odłożonych ACK-ów do procesu src (wywoływane przy RELEASE) */
+void send_deferred_acks_for(int src)
+{
+    pthread_mutex_lock(&deferredMut);
+    if (deferred_ack && deferred_ack[src]) {
+        deferred_ack[src] = 0;
+        pthread_mutex_unlock(&deferredMut);
+        sendPacket(0, src, ACK);
+    } else {
+        pthread_mutex_unlock(&deferredMut);
+    }
 }
 
 void sendPacket(packet_t *pkt, int destination, int tag)

@@ -77,6 +77,8 @@ int main(int argc, char **argv)
     /* --- NOWE: Inicjalizacja tablicy żądań --- */
     tablica_zadan = (int*)malloc(sizeof(int) * size);
     tablica_zasobow = (int*)malloc(sizeof(int) * size);
+    deferred_ack = (int*)malloc(sizeof(int) * size);
+    for (int i = 0; i < size; i++) deferred_ack[i] = 0;
     for(int i=0; i<size; i++) tablica_zasobow[i] = -999; // Coś co nie jest ani Pyrkonem, ani warsztatem
     for(int i=0; i<size; i++) tablica_zadan[i] = -1; // -1 oznacza: ten proces nie ubiega się o zasób
     /* ----------------------------------------- */

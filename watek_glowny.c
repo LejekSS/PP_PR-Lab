@@ -18,6 +18,9 @@ int check_priority(int my_ts, int my_resource) {
 
         // WARUNEK 1: Walczymy o WEJŚCIE NA PYRKON
         if (my_resource == REQ_PYRKON) {
+            // Konkurujemy z tymi, co chcą wejść na Pyrkon (REQ_PYRKON)
+            // ORAZ z tymi, co są na warsztatach (id >= 0), bo oni zajmują miejsce na Pyrkonie!
+
             if (other_resource == REQ_PYRKON) {
                 // Standardowy Lamport
                 if (other_ts < my_ts || (other_ts == my_ts && i < rank)) {
@@ -124,9 +127,12 @@ void mainLoop()
                 break;
 
             case InWant:
-                if (ackCount == size - 1) {
+                pthread_mutex_lock(&ackMut);
+                int localAck = ackCount;
+                pthread_mutex_unlock(&ackMut);
+                if (localAck == size - 1) {
                     if (check_priority(my_request_time, REQ_PYRKON) < PYRKON_SLOTS) {
-                        println("Wszedłem na teren PYRKONU!");
+                        // println("Wszedłem na teren PYRKONU!");
                         changeState(InSection);
                     }
                 }
@@ -164,7 +170,10 @@ void mainLoop()
                 break;
 
             case InWantWorkshop:
-                if (ackCount == size - 1) {
+                pthread_mutex_lock(&ackMut);
+                localAck = ackCount;
+                pthread_mutex_unlock(&ackMut);
+                if (localAck == size - 1) {
                     if (check_priority(my_request_time, current_resource) < WARSZTAT_SLOTS) {
                         println("Wszedłem na WARSZTAT nr %d", current_resource);
                         changeState(InWorkshop);
@@ -199,6 +208,8 @@ void mainLoop()
                     packet_t *pkt_rel = calloc(1, sizeof(packet_t));
                     pkt_rel->ts = lamport_clock;
                     pkt_rel->resource_id = -1;
+
+                    println("Wysyłam RELEASE (zwalniam miejsce) z zegarem %d", lamport_clock);
 
                     for (int i=0;i<size;i++)
                         if (i!=rank) sendPacket( pkt_rel, i, RELEASE);
