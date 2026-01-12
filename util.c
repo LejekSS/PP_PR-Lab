@@ -2,26 +2,19 @@
 #include "util.h"
 MPI_Datatype MPI_PAKIET_T;
 
-/* 
- * w util.h extern state_t stan (czyli zapowiedź, że gdzieś tam jest definicja
- * tutaj w util.c state_t stan (czyli faktyczna definicja)
- */
+/* State definition */
 state_t stan=InRun;
 
-/* zamek wokół zmiennej współdzielonej między wątkami. 
- * Zwróćcie uwagę, że każdy proces ma osobą pamięć, ale w ramach jednego
- * procesu wątki współdzielą zmienne - więc dostęp do nich powinien
- * być obwarowany muteksami
- */
+/* Mutex for state */
 pthread_mutex_t stateMut = PTHREAD_MUTEX_INITIALIZER;
 
-/* DODANE: Definicje zmiennych globalnych */
+/* Global variable definitions */
 int lamport_clock = 0;
 pthread_mutex_t clockMut = PTHREAD_MUTEX_INITIALIZER;
 int ackCount = 0;
 pthread_mutex_t ackMut = PTHREAD_MUTEX_INITIALIZER;
 
-/* NOWY MUTEX: chroni dostęp do tablica_zadan i tablica_zasobow */
+/* MUTEX: chroni dostęp do tablica_zadan i tablica_zasobow */
 pthread_mutex_t tablicaMut = PTHREAD_MUTEX_INITIALIZER;
 
 struct tagNames_t{
@@ -54,13 +47,11 @@ void inicjuj_typ_pakietu()
         typy[i] = MPI_INT; // Wszędzie przesyłamy inty
     }
 
-    /* Poniżej bezpieczniejsza wersja, która zakłada, że masz 4 pola w struct packet_t */
-
-    // Upewnij się, że ta sekcja pasuje do struct packet_t w util.h:
+    // Obliczamy offsety pól w strukturze packet_t
     offsets[0] = offsetof(packet_t, ts);
     offsets[1] = offsetof(packet_t, src);
-    offsets[2] = offsetof(packet_t, resource_id); // Jeśli masz to pole
-    offsets[3] = offsetof(packet_t, data);        // Jeśli masz to pole
+    offsets[2] = offsetof(packet_t, resource_id);
+    offsets[3] = offsetof(packet_t, data);  
 
     MPI_Type_create_struct(NITEMS, blocklengths, offsets, typy, &MPI_PAKIET_T);
     MPI_Type_commit(&MPI_PAKIET_T);
@@ -83,7 +74,7 @@ void sendPacket(packet_t *pkt, int destination, int tag)
 {
     int freepkt=0;
     if (pkt==0) {
-        // ZMIANA: używamy calloc zamiast malloc
+        // używamy calloc ponieważ chcemy mieć pewność, że wszystkie pola są zerowe
         pkt = calloc(1, sizeof(packet_t));
         freepkt=1;
     }
@@ -105,8 +96,6 @@ void sendPacket(packet_t *pkt, int destination, int tag)
 
     MPI_Send( pkt, 1, MPI_PAKIET_T, destination, tag, MPI_COMM_WORLD);
 
-    // Zmieniam debug na println zeby widziec zegar (jesli makro to obsluguje)
-    // Ale na razie zostawmy debug
     debug("Wysyłam %s do %d", tag2string(tag), destination);
 
     if (freepkt) free(pkt);

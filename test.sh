@@ -70,8 +70,9 @@ function add_error(msg) {
     # 1. Parsowanie
     gsub(/\x1b\[[0-9;]*m/, "", $0) # usuwanie kolorów z outputu C
 
-    if (match($0, /\[([0-9]+)\]:/, arr)) {
+    if (match($0, /\[([0-9]+)\] \[([0-9]+)\]:/, arr)) {
         rank = arr[1]
+        clocks[rank] = arr[2]
         seen[rank] = 1
         last_update[rank] = systime()
         
@@ -80,22 +81,21 @@ function add_error(msg) {
         last_msg[rank] = msg_content
     }
 
-    if (match($0, /zegar(em)? ([0-9]+)/, m)) { clocks[rank] = m[2] }
-
-    # Maszyna stanów
-    if ($0 ~ /Chcę wejść na PYRKON/) {
+    # Maszyna stanów (ignoruje wielkość liter)
+    lc_line = tolower($0)
+    if (lc_line ~ /chcę wejść na pyrkon/) {
         states[rank] = "WANT_PYRKON"; resources[rank] = "Brama"
-    } else if ($0 ~ /Wszedłem na teren PYRKONU/) {
+    } else if (lc_line ~ /wszedłem na teren pyrkonu/) {
         states[rank] = "IN_PYRKON"; resources[rank] = "Korytarz"
-    } else if (match($0, /Chcę iść na warsztat nr ([0-9]+)/, m)) {
+    } else if (match(lc_line, /chcę iść na warsztat nr ([0-9]+)/, m)) {
         states[rank] = "WANT_WORKSHOP"; resources[rank] = "Warsztat " m[1]
-    } else if (match($0, /Wszedłem na WARSZTAT nr ([0-9]+)/, m)) {
+    } else if (match(lc_line, /wszedłem na warsztat nr ([0-9]+)/, m)) {
         states[rank] = "IN_WORKSHOP"; resources[rank] = "Warsztat " m[1]; current_workshop[rank] = m[1]
-    } else if ($0 ~ /Koniec warsztatu/) {
+    } else if (lc_line ~ /koniec warsztatu/) {
         states[rank] = "IN_PYRKON"; resources[rank] = "Korytarz"; delete current_workshop[rank]
-    } else if ($0 ~ /Opuszczam Pyrkon/) {
+    } else if (lc_line ~ /opuszczam pyrkon/) {
         states[rank] = "RELEASED"; resources[rank] = "-"; delete current_workshop[rank]
-    } else if ($0 ~ /Kończę symulację/ || $0 ~ /finish/) {
+    } else if (lc_line ~ /kończę symulację/ || lc_line ~ /finish/) {
         states[rank] = "FINISHED"; resources[rank] = "DOM"
     }
 

@@ -9,7 +9,7 @@
 #include <pthread.h>
 
 #include "util.h"
-/* boolean */
+/* Boolean values */
 #define TRUE 1
 #define FALSE 0
 #define SEC_IN_STATE 1
@@ -17,7 +17,7 @@
 
 #define ROOT 0
 
-/* tutaj TYLKO zapowiedzi - definicje w main.c */
+/* Declarations only - definitions in main.c */
 extern int rank;
 extern int size;
 extern int ackCount;
@@ -28,26 +28,14 @@ extern int* tablica_zasobow;
 extern pthread_mutex_t deferredMut;
 
 
-
-
-
-/* macro debug - działa jak printf, kiedy zdefiniowano
-   DEBUG, kiedy DEBUG niezdefiniowane działa jak instrukcja pusta 
+/* 
+    debug macro - works like printf when DEBUG is defined.
+    If DEBUG is not defined, it compiles to an empty statement.
    
-   używa się dokładnie jak printfa, tyle, że dodaje kolorków i automatycznie
-   wyświetla rank
-
-   w związku z tym, zmienna "rank" musi istnieć.
-
-   w printfie: definicja znaku specjalnego "%c[%d;%dm [%d]" escape[styl bold/normal;kolor [RANK]
-                                           FORMAT:argumenty doklejone z wywołania debug poprzez __VA_ARGS__
-					   "%c[%d;%dm"       wyczyszczenie atrybutów    27,0,37
-                                            UWAGA:
-                                                27 == kod ascii escape. 
-                                                Pierwsze %c[%d;%dm ( np 27[1;10m ) definiuje styl i kolor literek
-                                                Drugie   %c[%d;%dm czyli 27[0;37m przywraca domyślne kolory i brak pogrubienia (bolda)
-                                                ...  w definicji makra oznacza, że ma zmienną liczbę parametrów
-                                            
+    Usage is exactly like printf, but it adds colors and automatically 
+    displays the rank and Lamport clock.
+    
+    Requires the "rank" variable to exist.
 */
 #ifdef DEBUG
 #define debug(FORMAT,...) do { \
@@ -60,8 +48,8 @@ extern pthread_mutex_t deferredMut;
 #define debug(...) ;
 #endif
 
-// makro println - to samo co debug, ale wyświetla się zawsze
-// Wyświetla: [rank] [zegar Lamporta]: FORMAT
+// println macro - same as debug, but always displays
+// Displays: [rank] [Lamport clock]: FORMAT
 #define println(FORMAT,...) do { \
     pthread_mutex_lock(&clockMut); \
     int _clock = lamport_clock; \

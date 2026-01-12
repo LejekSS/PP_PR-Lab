@@ -2,49 +2,41 @@
 #include "watek_glowny.h"
 #include "util.h"
 
-/* Funkcja sprawdza, na którym miejscu w kolejce jesteśmy */
-/* resource_id = o co my walczymy (-1 to Pyrkon, 0..N to warsztaty) */
+// zwraca pozycję w kolejce do zasobu
 int check_priority(int my_ts, int my_resource) {
     int position = 0;
-    // ZABEZPIECZAMY ODCZYT TABLIC
+
     pthread_mutex_lock(&tablicaMut);
 
     for (int i = 0; i < size; i++) {
         if (i == rank) continue;
-        if (tablica_zadan[i] == -1) continue; // Proces nie bierze udziału
+        if (tablica_zadan[i] == -1) continue;
 
         int other_resource = tablica_zasobow[i];
         int other_ts = tablica_zadan[i];
 
-        // WARUNEK 1: Walczymy o WEJŚCIE NA PYRKON
+        //pyrkon
         if (my_resource == REQ_PYRKON) {
-            // Konkurujemy z tymi, co chcą wejść na Pyrkon (REQ_PYRKON)
-            // ORAZ z tymi, co są na warsztatach (id >= 0), bo oni zajmują miejsce na Pyrkonie!
-
+            //ci co chca pyrkon
             if (other_resource == REQ_PYRKON) {
-                // Standardowy Lamport
                 if (other_ts < my_ts || (other_ts == my_ts && i < rank)) {
                     position++;
                 }
             } 
-            // ORAZ z tymi, co są na warsztatach (id >= 0), bo oni zajmują miejsce na Pyrkonie!
+            //ci co chca warsztat
             else if (other_resource >= 0) {
                 position++;
             }
         }
-        // WARUNEK 2: Walczymy o konkretny WARSZTAT
+        //warsztat
         else {
-            // Konkurujemy TYLKO z tymi, co chcą TEN SAM warsztat
             if (other_resource == my_resource) {
-                // Standardowy Lamport
                 if (other_ts < my_ts || (other_ts == my_ts && i < rank)) {
                     position++;
                 }
             }
         }
     }
-
-    // ODBLOKOWUJEMY PO ZAKOŃCZENIU ODCZYTU
     pthread_mutex_unlock(&tablicaMut);
 
     return position;
@@ -57,31 +49,24 @@ void mainLoop()
     int my_request_time = -1;
     int current_resource = -999;
     int wybrany_warsztat = 0;
-    int liczba_odwiedzonych = 0; // Licznik odwiedzonych warsztatów
-
-    int tury = 0; // Licznik przeprowadzonych tur Pyrkonu
+    int liczba_odwiedzonych = 0; //warsztatów
+    int tury = 0;
 
     while (stan != InFinish) {
         switch (stan) {
             case InRun:
-                // --- SYNCHRONIZACJA TURY ---
-
-                // 1. Czekamy, aż WSZYSCY zakończą poprzedni cykl i wrócą do InRun
+                
                 MPI_Barrier(MPI_COMM_WORLD);
 
-                // 2. Tylko ROOT czeka na znak od użytkownika
-                // if (rank == 0) {
-                //     println("=== Wciśnij ENTER, aby rozpocząć PYRKON (Start Tury) ===");
-                //     getchar();
-                // }
-                // println("Czekam na sygnał do rozpoczęcia tury...");
+                
+                // Resetujemy tablice zadan i zasobow
                 pthread_mutex_lock(&tablicaMut);
                 for (int i = 0; i < size; i++) {
                     tablica_zadan[i] = -1;      // Zakładamy, że nikt nic nie chce
                     tablica_zasobow[i] = -999;  // Zakładamy, że nikt nigdzie nie jest
                 }
                 pthread_mutex_unlock(&tablicaMut);
-                // 3. Czekamy, aż ROOT da sygnał (wciśnie Enter)
+                liczba_odwiedzonych = 0;
                 MPI_Barrier(MPI_COMM_WORLD);
 
                 // Zwiększamy licznik tur i sprawdzamy limit
@@ -94,10 +79,9 @@ void mainLoop()
                     println("=== Rozpoczynam TURĘ PYRKON %d ===", tury);
                 }
 
-                // --- START LOGIKI ---
 
-                // Resetujemy licznik na nową turę
-                liczba_odwiedzonych = 0;
+                // Pyrkon start
+                
 
                 println("Chcę wejść na PYRKON (tura %d)", tury);
 
@@ -139,7 +123,7 @@ void mainLoop()
                 break;
 
             case InSection:
-                // Jesteśmy na Pyrkonie (w korytarzu), wybieramy warsztat.
+                // wybieramy losowy warsztat
                 wybrany_warsztat = random() % WARSZTATY_COUNT;
                 println("Jestem na Pyrkonie. Chcę iść na warsztat nr %d", wybrany_warsztat);
 
@@ -151,7 +135,6 @@ void mainLoop()
                 pthread_mutex_lock(&clockMut);
                 lamport_clock++;
                 my_request_time = lamport_clock;
-                // WAŻNE: Aktualizujemy tablicę, ale NIE zwalniamy miejsca na Pyrkonie (nadpisujemy wpis)
                 pthread_mutex_lock(&tablicaMut);
                 tablica_zadan[rank] = my_request_time;
                 tablica_zasobow[rank] = current_resource;
@@ -182,22 +165,16 @@ void mainLoop()
                 break;
 
             case InWorkshop:
-                sleep(1); // Krótka symulacja pracy na warsztacie
+                sleep(1); //warsztatujemy
                 liczba_odwiedzonych++;
                 println("Koniec warsztatu %d. Odwiedziłem już %d.", current_resource, liczba_odwiedzonych);
 
-                /* --- LOGIKA PĘTLI WARSZTATOWEJ --- */
-                // Jeśli odwiedziliśmy mniej niż 2 warsztaty, idziemy na kolejny
+                // decyzja czy iść na kolejny warsztat czy opuścić Pyrkon
                 if (liczba_odwiedzonych < 2  || ((random() % 100) < 50) && (liczba_odwiedzonych < WARSZTATY_COUNT)) {
                     println("Chcę iść na kolejny warsztat!");
-
-                    // Wracamy do InSection, aby wylosować nowy warsztat i wysłać nowe żądanie.
-                    // Nowe żądanie (REQUEST) nadpisze stare w tablicach innych procesów,
-                    // co automatycznie zwolni nas z obecnego warsztatu, ale zachowa miejsce na Pyrkonie.
                     changeState(InSection);
                 }
                 else {
-                    // Odwiedziliśmy wystarczająco dużo, wychodzimy z Pyrkonu
                     println("Opuszczam Pyrkon (zaliczyłem %d warsztatów).", liczba_odwiedzonych);
 
                     pthread_mutex_lock(&tablicaMut);
@@ -215,7 +192,6 @@ void mainLoop()
                         if (i!=rank) sendPacket( pkt_rel, i, RELEASE);
                     free(pkt_rel);
 
-                    // Po zwolnieniu wracamy do InRun, gdzie trafimy na Barierę
                     changeState(InRun);
                 }
                 break;

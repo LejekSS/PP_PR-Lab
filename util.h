@@ -2,63 +2,61 @@
 #define UTILH
 #include "main.h"
 
-/* Typ pakietu przesyłany przez MPI */
+// pakiet komunikacyjny MPI
 typedef struct {
-    int ts;           /* timestamp (zegar Lamporta) */
-    int src;          /* źródło wiadomości (rank) */
-    int resource_id;  /* -1 = Pyrkon, 0..M = Warsztaty */
-    int data;         /* pole pomocnicze */
+    int ts;           // timestamp Lamporta
+    int src;          // rank nadawcy
+    int resource_id;  // -1 = pyrkon reszta warsztaty
+    int data;        // wiadomosc
 } packet_t;
 
-/* Liczba pól w packet_t (używana przy tworzeniu typu MPI) */
+// liczba elementów w pakiecie
 #define NITEMS 4
 
-/* Stany procesu */
+//stany
 typedef enum {
     InRun,
-    InMonitor,
     InWant,
-    InSection,      /* Na Pyrkonie (korytarz) */
+    InSection,      // na pyrkonie, wybiera warsztat
     InFinish,
-    InWantWorkshop, /* Chcę wejść na warsztat */
-    InWorkshop      /* Jestem na warsztacie */
+    InWantWorkshop,
+    InWorkshop
 } state_t;
 
-/* Stałe konfiguracyjne */
+//konfiguracja
 #define REQ_PYRKON -1
-#define WARSZTATY_COUNT 3   /* Liczba warsztatów (np. 0..2) */
-#define PYRKON_SLOTS 5      /* Maksymalna liczba miejsc na Pyrkonie */
-#define WARSZTAT_SLOTS 2    /* Maksymalna liczba uczestników jednego warsztatu */
-#define PYRKON_TURY 10      /* Maksymalna liczba tur symulacji */
+#define WARSZTATY_COUNT 3   // liczba warsztatów liczona od zera
+#define PYRKON_SLOTS 5      
+#define WARSZTAT_SLOTS 2   
+#define PYRKON_TURY 10   //ile pyrkonow bedzie
 
-/* Typy pakietów (MPI_TAG) */
+//typy wiadomości MPI
 #define ACK     1
 #define REQUEST 2
 #define RELEASE 3
 #define APP_PKT 4
 #define FINISH  5
 
-/* Tablice i typ MPI */
-extern int *tablica_zasobow; /* resource_id dla każdego procesu */
-extern int *tablica_zadan;   /* timestamp żądania lub -1 */
+extern int *tablica_zasobow; // resource_id dla każdego procesu
+extern int *tablica_zadan;   // timestamp żądania lub -1 
 extern MPI_Datatype MPI_PAKIET_T;
 
-/* Funkcje/zmienne udostępniane */
+// funkcje pomocnicze
 void inicjuj_typ_pakietu();
 void sendPacket(packet_t *pkt, int destination, int tag);
 
 extern state_t stan;
 extern pthread_mutex_t stateMut;
 
-/* Zegar Lamporta i muteksy */
+// zegar Lamporta
 extern int lamport_clock;
-extern pthread_mutex_t clockMut;
 extern int ackCount;
+// mutexy
+extern pthread_mutex_t clockMut;
 extern pthread_mutex_t ackMut;
-extern pthread_mutex_t tablicaMut; /* chroni tablica_zadan i tablica_zasobow */
+extern pthread_mutex_t tablicaMut; //tablica zadan i tablica zasobow
 
-/* zmiana stanu, obwarowana muteksem */
+//funkcja zmiany stanu
 void changeState( state_t );
 
 #endif
-
