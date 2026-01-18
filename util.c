@@ -21,8 +21,7 @@ pthread_mutex_t tablicaMut = PTHREAD_MUTEX_INITIALIZER;
 struct tagNames_t{
     const char *name;
     int tag;
-} tagNames[] = { { "pakiet aplikacyjny", APP_PKT }, { "finish", FINISH}, 
-                { "potwierdzenie", ACK}, {"prośbę o sekcję krytyczną", REQUEST}, {"zwolnienie sekcji krytycznej", RELEASE} };
+} tagNames[] = { { "potwierdzenie", ACK}, {"prośbę o sekcję krytyczną", REQUEST}, {"zwolnienie sekcji krytycznej", RELEASE} };
 
 const char *const tag2string( int tag )
 {

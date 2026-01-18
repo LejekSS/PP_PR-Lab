@@ -152,7 +152,7 @@ void mainLoop()
                 localAck = ackCount;
                 pthread_mutex_unlock(&ackMut);
                 if (localAck == size - 1) {
-                    if (check_priority(my_request_time, current_resource) < WARSZTAT_SLOTS) {
+                    if (check_priority(my_request_time, current_resource) <= WARSZTAT_SLOTS) {
                         println("Wszedłem na WARSZTAT nr %d", current_resource);
                         changeState(InWorkshop);
                     }
@@ -167,7 +167,7 @@ void mainLoop()
                 packet_t *pkt_rel = calloc(1, sizeof(packet_t));
                 pkt_rel->ts = lamport_clock;
                 pkt_rel->resource_id = current_resource;
-                println("Wysyłam RELEASE (zwalniam warsztat %d)", current_resource);
+                println("Wysyłam RELEASE %d", current_resource);
                 for (int i=0;i<size;i++)
                     if (i!=rank) sendPacket( pkt_rel, i, RELEASE);
                 free(pkt_rel);
